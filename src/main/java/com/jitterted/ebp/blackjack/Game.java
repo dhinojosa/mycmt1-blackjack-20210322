@@ -2,163 +2,165 @@ package com.jitterted.ebp.blackjack;
 
 import org.fusesource.jansi.Ansi;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Scanner;
-import java.util.stream.Collectors;
 
 import static org.fusesource.jansi.Ansi.ansi;
 
 public class Game {
 
-  private final Deck deck;
+    private final Deck deck;
 
-  private final List<Card> dealerHand = new ArrayList<>();
-  private final List<Card> playerHand = new ArrayList<>();
+    private final Hand playerHand = new Hand();
+    private final Hand dealerHand = new Hand();
 
-  public static void main(String[] args) {
-    Game game = new Game();
+    public static void main(String[] args) {
+        Game game = new Game();
+        displayWelcomeScreen();
+        playGame(game);
+        resetScreen();
+    }
 
-    System.out.println(ansi()
-                           .bgBright(Ansi.Color.WHITE)
-                           .eraseScreen()
-                           .cursor(1, 1)
-                           .fgGreen().a("Welcome to")
-                           .fgRed().a(" Jitterted's")
-                           .fgBlack().a(" BlackJack"));
+    private static void resetScreen() {
+        System.out.println(ansi().reset());
+    }
 
+    private static void playGame(Game game) {
+        game.initialDeal();
+        game.play();
+    }
 
-    game.initialDeal();
-    game.play();
+    private static void displayWelcomeScreen() {
+        System.out.println(ansi()
+            .bgBright(Ansi.Color.WHITE)
+            .eraseScreen()
+            .cursor(1, 1)
+            .fgGreen().a("Welcome to")
+            .fgRed().a(" Jitterted's")
+            .fgBlack().a(" BlackJack"));
+    }
 
-    System.out.println(ansi().reset());
-  }
+    public Game() {
+        deck = new Deck();
+    }
 
-  public Game() {
-    deck = new Deck();
-  }
+    public void initialDeal() {
+        dealRoundToPlayerThenDealer();
+        dealRoundToPlayerThenDealer();
+    }
 
-  public void initialDeal() {
+    private void dealRoundToPlayerThenDealer() {
+        playerHand.dealCardFrom(deck);
+        dealerHand.dealCardFrom(deck);
+    }
 
-    // deal first round of cards, players first
-    playerHand.add(deck.draw());
-    dealerHand.add(deck.draw());
+    public void play() {
+        boolean playerBusted = playerTurn();
+        dealerTurn(playerBusted);
+        displayFinalGameState();
+        displayOutcome(playerBusted);
+    }
 
-    // deal next round of cards
-    playerHand.add(deck.draw());
-    dealerHand.add(deck.draw());
-  }
-
-  public void play() {
-    // get Player's decision: hit until they stand, then they're done (or they go bust)
-    boolean playerBusted = false;
-    while (!playerBusted) {
-      displayGameState();
-      String playerChoice = inputFromPlayer().toLowerCase();
-      if (playerChoice.startsWith("s")) {
-        break;
-      }
-      if (playerChoice.startsWith("h")) {
-        playerHand.add(deck.draw());
-        if (handValueOf(playerHand) > 21) {
-          playerBusted = true;
+    private void displayOutcome(boolean playerBusted) {
+        if (playerBusted) {
+            System.out.println("You Busted, so you lose.  💸");
+        } else if (dealerHand.isBusted()) {
+            System.out.println("Dealer went BUST, Player wins! Yay for you!! " +
+                "💵");
+        } else if (playerHand.beats(dealerHand)) {
+            System.out.println("You beat the Dealer! 💵");
+        } else if (dealerHand.handValueOf() == playerHand.handValueOf()) {
+            System.out.println("Push: You tie with the Dealer. 💸");
+        } else {
+            System.out.println("You lost to the Dealer. 💸");
         }
-      } else {
-        System.out.println("You need to [H]it or [S]tand");
-      }
     }
 
-    // Dealer makes its choice automatically based on a simple heuristic (<=16, hit, 17>=stand)
-    if (!playerBusted) {
-      while (handValueOf(dealerHand) <= 16) {
-        dealerHand.add(deck.draw());
-      }
+    private void dealerTurn(boolean playerBusted) {
+        // Dealer makes its choice automatically based on a simple heuristic
+        // (<=16, hit, 17>=stand)
+        if (!playerBusted) {
+            while (dealerHand.handValueOf() <= 16) {
+                dealerHand.dealCardFrom(deck);
+            }
+        }
     }
 
-    displayFinalGameState();
-
-    if (playerBusted) {
-      System.out.println("You Busted, so you lose.  💸");
-    } else if (handValueOf(dealerHand) > 21) {
-      System.out.println("Dealer went BUST, Player wins! Yay for you!! 💵");
-    } else if (handValueOf(dealerHand) < handValueOf(playerHand)) {
-      System.out.println("You beat the Dealer! 💵");
-    } else if (handValueOf(dealerHand) == handValueOf(playerHand)) {
-      System.out.println("Push: You tie with the Dealer. 💸");
-    } else {
-      System.out.println("You lost to the Dealer. 💸");
-    }
-  }
-
-  public int handValueOf(List<Card> hand) {
-    int handValue = hand
-        .stream()
-        .mapToInt(Card::rankValue)
-        .sum();
-
-    // does the hand contain at least 1 Ace?
-    boolean hasAce = hand
-        .stream()
-        .anyMatch(card -> card.rankValue() == 1);
-
-    // if the total hand value <= 11, then count the Ace as 11 by adding 10
-    if (hasAce && handValue < 11) {
-      handValue += 10;
+    private boolean playerTurn() {
+        // get Player's decision: hit until they stand, then they're done (or
+        // they go bust)
+        boolean playerBusted = false;
+        while (!playerBusted) {
+            displayGameState();
+            String playerChoice = inputFromPlayer().toLowerCase();
+            if (playerStand(playerChoice)) {
+                break;
+            }
+            if (playerChoice.startsWith("h")) {
+                playerHand.dealCardFrom(deck);
+                if (playerHand.isBusted()) {
+                    playerBusted = true;
+                }
+            } else {
+                System.out.println("You need to [H]it or [S]tand");
+            }
+        }
+        return playerBusted;
     }
 
-    return handValue;
-  }
+	private boolean playerStand(String playerChoice) {
+		return playerChoice.startsWith("s");
+	}
 
-  private String inputFromPlayer() {
-    System.out.println("[H]it or [S]tand?");
-    Scanner scanner = new Scanner(System.in);
-    return scanner.nextLine();
-  }
+    private String inputFromPlayer() {
+        System.out.println("[H]it or [S]tand?");
+        Scanner scanner = new Scanner(System.in);
+        return scanner.nextLine();
+    }
 
-  private void displayGameState() {
-    System.out.print(ansi().eraseScreen().cursor(1, 1));
-    System.out.println("Dealer has: ");
-    System.out.println(dealerHand.get(0).display()); // first card is Face Up
+    private void displayGameState() {
+        displayDealerUpCard();
+        displayBackOfCard();
+        displayPlayerHand();
+    }
 
-    // second card is the hole card, which is hidden
-    displayBackOfCard();
+    private void displayPlayerHand() {
+        System.out.println();
+        System.out.println("Player has: ");
+        playerHand.display();
+        System.out.println(" (" + playerHand.handValueOf() + ")");
+    }
 
-    System.out.println();
-    System.out.println("Player has: ");
-    displayHand(playerHand);
-    System.out.println(" (" + handValueOf(playerHand) + ")");
-  }
+    private void displayDealerUpCard() {
+        System.out.print(ansi().eraseScreen().cursor(1, 1));
+        System.out.println("Dealer has: ");
+        // The first card is Face Up
+        System.out.println(dealerHand.getFirstCard().display());
+    }
 
-  private void displayBackOfCard() {
-    System.out.print(
-        ansi()
-            .cursorUp(7)
-            .cursorRight(12)
-            .a("┌─────────┐").cursorDown(1).cursorLeft(11)
-            .a("│░░░░░░░░░│").cursorDown(1).cursorLeft(11)
-            .a("│░ J I T ░│").cursorDown(1).cursorLeft(11)
-            .a("│░ T E R ░│").cursorDown(1).cursorLeft(11)
-            .a("│░ T E D ░│").cursorDown(1).cursorLeft(11)
-            .a("│░░░░░░░░░│").cursorDown(1).cursorLeft(11)
-            .a("└─────────┘"));
-  }
+    private void displayBackOfCard() {
+        System.out.print(
+            ansi()
+                .cursorUp(7)
+                .cursorRight(12)
+                .a("┌─────────┐").cursorDown(1).cursorLeft(11)
+                .a("│░░░░░░░░░│").cursorDown(1).cursorLeft(11)
+                .a("│░ J I T ░│").cursorDown(1).cursorLeft(11)
+                .a("│░ T E R ░│").cursorDown(1).cursorLeft(11)
+                .a("│░ T E D ░│").cursorDown(1).cursorLeft(11)
+                .a("│░░░░░░░░░│").cursorDown(1).cursorLeft(11)
+                .a("└─────────┘"));
+    }
 
-  private void displayHand(List<Card> hand) {
-    System.out.println(hand.stream()
-                           .map(Card::display)
-                           .collect(Collectors.joining(
-                               ansi().cursorUp(6).cursorRight(1).toString())));
-  }
 
-  private void displayFinalGameState() {
-    System.out.print(ansi().eraseScreen().cursor(1, 1));
-    System.out.println("Dealer has: ");
-    displayHand(dealerHand);
-    System.out.println(" (" + handValueOf(dealerHand) + ")");
+    private void displayFinalGameState() {
+        displayFinalDealerHand();
+        displayPlayerHand();
+    }
 
-    System.out.println();
-    System.out.println("Player has: ");
-    displayHand(playerHand);
-    System.out.println(" (" + handValueOf(playerHand) + ")");
-  }
+    private void displayFinalDealerHand() {
+        System.out.print(ansi().eraseScreen().cursor(1, 1));
+        System.out.println("Dealer has: ");
+        playerHand.display();
+        System.out.println(" (" + dealerHand.handValueOf() + ")");
+    }
 }

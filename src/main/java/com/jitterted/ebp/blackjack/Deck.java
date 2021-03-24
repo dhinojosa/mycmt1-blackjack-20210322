@@ -8,10 +8,9 @@ public class Deck {
   private final List<Card> cards = new ArrayList<>();
 
   public Deck() {
-    List<String> cardValues = List.of("A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K");
-    List<String> suits = List.of("♠", "♦", "♥", "♣");
-    for (String suit : suits) {
-      for (String cardValue : cardValues) {
+    List<String> ranks = List.of("A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K");
+    for (Suit suit : Suit.values()) {
+      for (String cardValue : ranks) {
         cards.add(new Card(suit, cardValue));
       }
     }
