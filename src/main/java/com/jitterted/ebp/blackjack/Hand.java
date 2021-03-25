@@ -21,7 +21,7 @@ public class Hand {
     }
 
     //Goal: Maybe make this private
-    public int handValueOf() {
+    private int handValueOf() {
         int handValue = cardList
             .stream()
             .mapToInt(Card::rankValue)
@@ -40,7 +40,11 @@ public class Hand {
         return handValue;
     }
 
-    void display() {
+    void displayHandValueToSysOut() {
+        System.out.println(" (" + handValueOf() + ")");
+    }
+
+    void displayAllCardsToSysOut() {
         System.out.println(cardList.stream()
                                .map(Card::display)
                                .collect(Collectors.joining(
@@ -57,5 +61,17 @@ public class Hand {
 
     boolean beats(Hand otherHand) {
         return otherHand.handValueOf() < handValueOf();
+    }
+
+    boolean pushesWith(Hand otherHand) {
+        return otherHand.handValueOf() == handValueOf();
+    }
+
+    boolean isNotBusted() {
+        return handValueOf() <= 16;
+    }
+
+    public boolean hasValueOf(int i) {
+        return handValueOf() == i;
     }
 }

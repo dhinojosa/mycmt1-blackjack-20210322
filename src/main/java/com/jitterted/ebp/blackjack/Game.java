@@ -68,7 +68,9 @@ public class Game {
                 "💵");
         } else if (playerHand.beats(dealerHand)) {
             System.out.println("You beat the Dealer! 💵");
-        } else if (dealerHand.handValueOf() == playerHand.handValueOf()) {
+            //dealerHand.pushesWith(playerHand)
+            //playerHand.pushesWith(dealerHand)
+        } else if (playerHand.pushesWith(dealerHand)) {
             System.out.println("Push: You tie with the Dealer. 💸");
         } else {
             System.out.println("You lost to the Dealer. 💸");
@@ -79,7 +81,7 @@ public class Game {
         // Dealer makes its choice automatically based on a simple heuristic
         // (<=16, hit, 17>=stand)
         if (!playerBusted) {
-            while (dealerHand.handValueOf() <= 16) {
+            while (dealerHand.isNotBusted()) {
                 dealerHand.dealCardFrom(deck);
             }
         }
@@ -126,8 +128,8 @@ public class Game {
     private void displayPlayerHand() {
         System.out.println();
         System.out.println("Player has: ");
-        playerHand.display();
-        System.out.println(" (" + playerHand.handValueOf() + ")");
+        playerHand.displayAllCardsToSysOut();
+        playerHand.displayHandValueToSysOut();
     }
 
     private void displayDealerUpCard() {
@@ -160,7 +162,7 @@ public class Game {
     private void displayFinalDealerHand() {
         System.out.print(ansi().eraseScreen().cursor(1, 1));
         System.out.println("Dealer has: ");
-        playerHand.display();
-        System.out.println(" (" + dealerHand.handValueOf() + ")");
+        dealerHand.displayAllCardsToSysOut();
+        dealerHand.displayHandValueToSysOut();
     }
 }
