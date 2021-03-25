@@ -12,6 +12,8 @@ public class Game {
 
     private final Hand playerHand = new Hand();
     private final Hand dealerHand = new Hand();
+    private int playerBalance;
+    private int betAmount;
 
     public static void main(String[] args) {
         Game game = new Game();
@@ -63,17 +65,20 @@ public class Game {
     private void displayOutcome(boolean playerBusted) {
         if (playerBusted) {
             System.out.println("You Busted, so you lose.  💸");
+            playerLoses();
         } else if (dealerHand.isBusted()) {
             System.out.println("Dealer went BUST, Player wins! Yay for you!! " +
                 "💵");
+            playerWins();
         } else if (playerHand.beats(dealerHand)) {
             System.out.println("You beat the Dealer! 💵");
-            //dealerHand.pushesWith(playerHand)
-            //playerHand.pushesWith(dealerHand)
+            playerWins();
         } else if (playerHand.pushesWith(dealerHand)) {
             System.out.println("Push: You tie with the Dealer. 💸");
+            playerPushes();
         } else {
             System.out.println("You lost to the Dealer. 💸");
+            playerLoses();
         }
     }
 
@@ -164,5 +169,32 @@ public class Game {
         System.out.println("Dealer has: ");
         dealerHand.displayAllCardsToSysOut();
         dealerHand.displayHandValueToSysOut();
+    }
+
+    public void playerDeposits(int amount) {
+       this.playerBalance += amount;
+    }
+
+    public void playerBets(int amount) {
+        this.playerBalance -= amount;
+        this.betAmount += amount;
+    }
+
+    public void playerWins() {
+        this.playerBalance += (betAmount * 2);
+        this.betAmount = 0;
+    }
+
+    public int playerBalance() {
+        return playerBalance;
+    }
+
+    public void playerLoses() {
+
+    }
+
+    public void playerPushes() {
+        this.playerBalance += (betAmount);
+        //this.betAmount = 0;
     }
 }
